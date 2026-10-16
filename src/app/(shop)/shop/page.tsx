@@ -1,5 +1,6 @@
 import { ProductCard } from "@/components/product-card";
 import prisma from "@/lib/prisma";
+import { FALLBACK_PRODUCTS } from "@/lib/mock-data";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -10,9 +11,15 @@ export const metadata: Metadata = {
 export default async function ShopPage() {
   let products: any[] = [];
   try {
-    products = await prisma.product.findMany();
+    if (process.env.DATABASE_URL) {
+      products = await prisma.product.findMany();
+    }
   } catch (e) {
     console.error("Failed to fetch products", e);
+  }
+
+  if (!products || products.length === 0) {
+    products = FALLBACK_PRODUCTS;
   }
 
   return (

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product-card";
 import prisma from "@/lib/prisma";
+import { FALLBACK_PRODUCTS } from "@/lib/mock-data";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,17 +12,20 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  // Fetch featured products
-  // Prisma Postgres might be down if `prisma dev` is not running. 
-  // We'll wrap in try/catch so the UI still loads
   let featuredProducts: any[] = [];
   try {
-    featuredProducts = await prisma.product.findMany({
-      where: { isFeatured: true },
-      take: 3,
-    });
+    if (process.env.DATABASE_URL) {
+      featuredProducts = await prisma.product.findMany({
+        where: { isFeatured: true },
+        take: 3,
+      });
+    }
   } catch (e) {
     console.error("Failed to fetch products", e);
+  }
+
+  if (!featuredProducts || featuredProducts.length === 0) {
+    featuredProducts = FALLBACK_PRODUCTS.slice(0, 3);
   }
 
   return (

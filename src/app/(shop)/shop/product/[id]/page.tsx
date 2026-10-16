@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Heart, Minus, Plus, Share2 } from "lucide-react";
 import prisma from "@/lib/prisma";
+import { FALLBACK_PRODUCTS } from "@/lib/mock-data";
 
 export default async function ProductDetailsPage({
   params,
@@ -11,29 +12,23 @@ export default async function ProductDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  let product = null;
+  let product: any = null;
   
   try {
-    product = await prisma.product.findUnique({
-      where: { id },
-      include: { category: true },
-    });
+    if (process.env.DATABASE_URL) {
+      product = await prisma.product.findUnique({
+        where: { id },
+        include: { category: true },
+      });
+    }
   } catch (e) {
     console.error(e);
   }
 
   if (!product) {
-    // If DB isn't running, show placeholder
-    product = {
-      id: "placeholder",
-      name: "Classic Vanilla Berry Bento",
-      description: "A delicate 4-inch vanilla sponge layered with fresh mixed berry compote and light vanilla buttercream. Perfect for intimate celebrations.",
-      price: 650,
-      isEggless: true,
-      inStock: true,
-      images: '["https://images.unsplash.com/photo-1565958011703-44f9829ba187?q=80&w=1200&auto=format&fit=crop"]',
-      category: { name: "Signature Cakes" }
-    } as any;
+    // Check fallback products
+    const matched = FALLBACK_PRODUCTS.find((p) => p.id === id || p.slug === id);
+    product = matched || FALLBACK_PRODUCTS[0];
   }
 
   let images: string[] = [];
@@ -93,7 +88,7 @@ export default async function ProductDetailsPage({
               {product.name}
             </h1>
             <p className="font-sans font-bold text-2xl text-on-surface mb-6">
-              ₹{product.price.toString()}
+              ₹{(product.basePrice ?? product.price ?? 650).toString()}
             </p>
 
             <div className="prose prose-on-surface max-w-none mb-8">
